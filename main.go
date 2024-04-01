@@ -15,7 +15,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"strconv"
@@ -27,11 +26,11 @@ func activateAttachAPI(pid int) error {
 	// sending SIGQUIT to activate this feature
 
 	attachpath := fmt.Sprintf("/proc/%v/cwd/.attach_pid%v", pid, pid)
-	if err := ioutil.WriteFile(attachpath, nil, 0777); err != nil {
+	if err := os.WriteFile(attachpath, nil, 0o777); err != nil {
 
 		// backup directory in case of permission issues
 		altpath := fmt.Sprintf("/proc/%v/root/tmp/.attach_pid%v", pid, pid)
-		if err := ioutil.WriteFile(altpath, nil, 0777); err != nil {
+		if err := os.WriteFile(altpath, nil, 0o777); err != nil {
 			return fmt.Errorf("could not touch file to activate attach api: %w", err)
 		}
 	}
