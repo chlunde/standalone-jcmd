@@ -19,6 +19,7 @@ import (
 	"os"
 	"strconv"
 	"syscall"
+	"time"
 )
 
 func activateAttachAPI(pid int) error {
@@ -44,13 +45,26 @@ func activateAttachAPI(pid int) error {
 		return fmt.Errorf("could not send signal 3 to activate attach API: %w", err)
 	}
 
-	// TODO: Poll a few milliseconds to ensure the socket is active?
+	// Check if the UNIX socket is active
+	sock := socketPath(pid)
+	for i := 1; i < 10; i++ {
+		if _, err := os.Stat(sock); err != nil && !os.IsNotExist(err) {
+			break
+		}
+
+		// exponential backoff
+		time.Sleep(time.Duration(1<<uint(i)) * time.Millisecond)
+	}
 
 	return nil
 }
 
+func socketPath(pid int) string {
+	return fmt.Sprintf("/proc/%v/root/tmp/.java_pid%v", pid, pid)
+}
+
 func connect(pid int) (*net.UnixConn, error) {
-	sock := fmt.Sprintf("/proc/%v/root/tmp/.java_pid%v", pid, pid)
+	sock := socketPath(pid)
 
 	// Check if the UNIX socket is active
 	if _, err := os.Stat(sock); err != nil && os.IsNotExist(err) {
